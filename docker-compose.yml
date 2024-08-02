@@ -1,0 +1,74 @@
+version: "3"
+
+services:
+  postgres:
+    image: postgres:${POSTGRES_VERSION}
+    container_name: postgres
+    restart: always
+    environment:
+      - POSTGRES_DB=${POSTGRES_DATABASE}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - ${POSTGRES_PORT}:5432
+  mongodb:
+    image: mongo:${MONGO_VERSION}
+    container_name: mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    ports:
+      - ${MONGO_PORT}:27017
+    volumes:
+      - mongodb_data:/var/lib/mongodb/data
+  redis:
+    image: redis:${REDIS_VERSION}
+    container_name: redis
+    restart: always
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    ports:
+      - ${REDIS_PORT}:6379
+    volumes:
+      - redis_data:/data
+      - ./conf/redis/redis.conf:/usr/local/etc/redis/redis.conf
+  back:
+    build: ${GIT_REPO_BACK}#main
+    container_name: back
+    ports:
+      - ${ASPNETCORE_HTTP_PORT}:5000
+      - ${ASPNETCORE_HTTPS_PORT}:5001
+    environment:
+      ENV: ${ASPNETCORE_ENVIRONMENT}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DATABASE: ${POSTGRES_DATABASE}
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    depends_on:
+      - postgres
+      - redis
+      - mongodb
+  front:
+    build: ${GIT_REPO_FRONT}#main
+    container_name: front
+    ports: 
+      - ${ANGULAR_HTTP_PORT}:4200
+      - ${ANGULAR_HTTPS_PORT}:4201
+    environment:
+      ENV: ${ENV}
+    depends_on:
+      - back
+
+
+volumes:
+  mongodb_data:
+  postgres_data:
+  redis_data:
